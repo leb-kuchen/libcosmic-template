@@ -1,6 +1,6 @@
 
 ## About
-Generates the boilerplate for [libcosmic](https://github.com/pop-os/libcosmic) applications.
+Generates the boilerplate for [libcosmic](https://github.com/pop-os/libcosmic) applications on the [COSMIC DE](https://github.com/pop-os/cosmic-eoch).
 Currently only applets are supported.
 Includes the justfile for installing the applet and icons aswell as translation support.
 
