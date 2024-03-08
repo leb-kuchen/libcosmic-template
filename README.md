@@ -8,7 +8,7 @@ Includes the justfile for installing the applet and icons aswell as translation 
 ## Install 
 Go(>=1.22) is required.
 ```sh
-go install github.com/leb-kuchen/libcosmic-template
+go install github.com/leb-kuchen/libcosmic-template@latest
 ```
 ## Usage
 - icon string
