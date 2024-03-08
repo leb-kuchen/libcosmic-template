@@ -2,6 +2,6 @@
 # Installs files into the system
 install: 
     sudo install -Dm0755 ./target/release/{{.Name}}  /usr/bin/{{.Name}}
-    sudo install -Dm0644 {{.ID}}.desktop /usr/share/applications/{{.ID}}.desktop
-    find {{.Name}}/'data'/'icons' -type f -exec echo {} \; | rev | cut -d'/' -f-3 | rev | xargs -d '\n' -I {} sudo install -Dm0644 {{.Name}}/'data'/'icons'/{} /usr/share/icons/hicolor/{}
+    sudo install -Dm0644 data/{{.ID}}.desktop /usr/share/applications/{{.ID}}.desktop
+    find 'data'/'icons' -type f -exec echo {} \; | rev | cut -d'/' -f-3 | rev | xargs -d '\n' -I {} sudo install -Dm0644 'data'/'icons'/{} /usr/share/icons/hicolor/{}
 

@@ -32,6 +32,8 @@ func main() {
 	flag.Parse()
 	a := newApp(*id, *icon, *name, *icon_files)
 	a.write()
+	fmt.Printf("\nDone - Now Type:\n\ncd %v \ncargo b -r \nsudo just install\n", a.name)
+
 }
 
 type app struct {
@@ -78,21 +80,23 @@ func newApp(id, icon, name, icon_files string) *app {
 	f10 := must(fsDyn.Open("dataDyn/id.desktop"))
 	defer f10.Close()
 	must(t.New(f1[len(f1)-1]).Parse(string(must(io.ReadAll(f10)))))
-	addDep := "cargo add --git 'https://github.com/pop-os/libcosmic' libcosmic --no-default-features -F 'applet,tokio,wayland'"
-	addDep2 := "cargo add rust-embed i18n-embed-fl once_cell && cargo add i18n-embed -F 'fluent-system,desktop-requester'"
+
+	addDep := "cargo add --git 'https://github.com/pop-os/libcosmic' libcosmic --no-default-features -F 'libcosmic/applet,libcosmic/tokio,libcosmic/wayland'"
+	addDep2 := "cargo add rust-embed i18n-embed-fl once_cell i18n-embed -F 'i18n-embed/fluent-system,i18n-embed/desktop-requester'"
 	cmd := exec.Command("bash", "-c", fmt.Sprintf("cd %v && cargo init && %v && %v", name, addDep, addDep2))
 	fmt.Println("Executing command:", cmd)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
 	must1(cmd.Run())
 	p := path.Join(name, "i18n", "en")
 	must1(os.MkdirAll(p, os.ModePerm))
 	// todo touch
-	//
 
 	f2 := must(os.Create(filepath.Join(p, fmt.Sprintf("%v.ftl", strings.ReplaceAll(name, "-", "_")))))
 	f2.Close()
 	f3 := must(os.Create(filepath.Join(name, "data", fmt.Sprintf("%v.desktop", id))))
 	f3.Close()
-	appsDir := filepath.Join(name, "data", "icons", "scallable", "apps")
+	appsDir := filepath.Join(name, "data", "icons", "scalable", "apps")
 	must1(os.MkdirAll(appsDir, os.ModePerm))
 	for _, p := range strings.Fields(icon_files) {
 		must1(os.WriteFile(path.Join(appsDir, filepath.Base(p)), must(os.ReadFile(p)), os.ModePerm))
