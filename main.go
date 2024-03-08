@@ -19,9 +19,6 @@ var fs embed.FS
 //go:embed dataDyn/*
 var fsDyn embed.FS
 
-// icons
-// move template to struct
-// one cargo add only one request?
 // todo better naming
 
 func main() {
@@ -32,7 +29,7 @@ func main() {
 	flag.Parse()
 	a := newApp(*id, *icon, *name, *icon_files)
 	a.write()
-	fmt.Printf("\nDone - Now Type:\n\ncd %v \ncargo b -r \nsudo just install\n", a.name)
+	fmt.Printf("\nDone - Now Type:\n\ncd %v \ncargo b -r \nsudo just install\n", a.Name)
 
 }
 
@@ -41,29 +38,28 @@ type app struct {
 
 	// file names
 	f              []string
-	id, icon, name string
+	ID, Icon, Name string
 }
 
 func (a *app) write() {
 	for _, n := range a.f {
 		var p string
 		if strings.HasSuffix(n, ".rs") {
-			p = filepath.Join(a.name, "src", n)
+			p = filepath.Join(a.Name, "src", n)
 		} else if strings.HasSuffix(n, ".desktop") {
-			p = filepath.Join(a.name, "data", n)
+			p = filepath.Join(a.Name, "data", n)
 		} else {
-			p = filepath.Join(a.name, n)
+			p = filepath.Join(a.Name, n)
 		}
 
 		f := must(os.Create(p))
 		defer f.Close()
-		must1(a.t.ExecuteTemplate(f, n, map[string]any{
-			"ID":   a.id,
-			"Icon": a.icon,
-			"Name": a.name,
-		}))
+		must1(a.t.ExecuteTemplate(f, n, a))
 	}
 
+}
+func (a *app) IconName() string {
+	return strings.TrimSuffix(a.Icon, filepath.Ext(a.Icon))
 }
 func newApp(id, icon, name, icon_files string) *app {
 
@@ -103,10 +99,10 @@ func newApp(id, icon, name, icon_files string) *app {
 	}
 	return &app{
 		t:    t,
-		id:   id,
+		ID:   id,
 		f:    f1,
-		icon: icon,
-		name: name,
+		Icon: icon,
+		Name: name,
 	}
 }
 

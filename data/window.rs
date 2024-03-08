@@ -85,7 +85,7 @@ impl cosmic::Application for Window {
     fn view(&self) -> Element<Self::Message> {
         self.core
             .applet
-            .icon_button("weather-windy-symbolic")
+            .icon_button("{{.IconName}}")
             .on_press(Message::TogglePopup)
             .into()
     }
