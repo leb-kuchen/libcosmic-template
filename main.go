@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -84,7 +83,7 @@ func newApp(id, icon, name, icon_files string) *app {
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	must1(cmd.Run())
-	p := path.Join(name, "i18n", "en")
+	p := filepath.Join(name, "i18n", "en")
 	must1(os.MkdirAll(p, os.ModePerm))
 	// todo touch
 
@@ -95,7 +94,7 @@ func newApp(id, icon, name, icon_files string) *app {
 	appsDir := filepath.Join(name, "data", "icons", "scalable", "apps")
 	must1(os.MkdirAll(appsDir, os.ModePerm))
 	for _, p := range strings.Fields(icon_files) {
-		must1(os.WriteFile(path.Join(appsDir, filepath.Base(p)), must(os.ReadFile(p)), os.ModePerm))
+		must1(os.WriteFile(filepath.Join(appsDir, filepath.Base(p)), must(os.ReadFile(p)), os.ModePerm))
 	}
 	return &app{
 		t:    t,
