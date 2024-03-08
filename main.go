@@ -60,6 +60,9 @@ func (a *app) write() {
 func (a *app) IconName() string {
 	return strings.TrimSuffix(a.Icon, filepath.Ext(a.Icon))
 }
+func (a *app) FormatName() string {
+	return strings.ReplaceAll(a.Name, "-", " ")
+}
 func newApp(id, icon, name, icon_files string) *app {
 
 	f := must(fs.ReadDir("data"))
