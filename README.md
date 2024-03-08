@@ -6,7 +6,7 @@ Includes the justfile for installing the applet and icons aswell as translation 
 
 
 ## Install 
-Go(>=1.22) is required.
+Go(>=1.22) is required to build. Prebuilt binaries are available in the releases section.
 ```sh
 go install github.com/leb-kuchen/libcosmic-template@latest
 ```
