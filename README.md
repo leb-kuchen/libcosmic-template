@@ -1,6 +1,6 @@
 
 ## About
-Generates the boilerplate for libcosmic applications.
+Generates the boilerplate for [libcosmic](pop-os/libcosmic) applications.
 Currently only applets are supported.
 Includes the justfile for installing the applet and icons aswell as translation support.
 
