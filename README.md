@@ -30,7 +30,7 @@ sudo just install
 The example applet should now appear in the panel settings.
 ## Example
 ```sh
-libcosmic-template -id org.example.com -name example-example-applet -icon "some-icon"
+libcosmic-template -id org.example.com -name example-example-applet -icon some-icon
 ```
 
 
