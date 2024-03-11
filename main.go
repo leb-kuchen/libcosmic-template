@@ -1,8 +1,8 @@
 package main
 
 import (
+	"bufio"
 	"embed"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	flag "github.com/spf13/pflag"
 )
 
 //go:embed data/*
@@ -21,11 +23,21 @@ var fsDyn embed.FS
 // todo better naming
 
 func main() {
+
 	id := flag.String("id", "com.system76.CosmicAppletExample", "App ID")
 	icon := flag.String("icon", "display-symbolic", "Icon name")
-	name := flag.String("name", "cosmic-applet-example", "App name")
-	icon_files := flag.String("icon-files", "", "path to icon files(Seperated by whitespace)")
+	name := flag.StringP("name", "n", "cosmic-applet-example", "App name")
+	icon_files := flag.StringSlice("icon-files", []string{}, "path to icon files")
+	interactive_ := flag.BoolP("interactive", "i", false, "Activate interactive mode")
 	flag.Parse()
+	if *interactive_ {
+		interactive(id, icon, name, icon_files)
+	}
+	fmt.Printf("Your input, are you sure? id: %v, icon: %v, name: %v, icon_files: %v \n", *id, *icon, *name, *icon_files)
+	exit := ""
+	must(fmt.Scan(&exit))
+	mustBool(!strings.HasPrefix(strings.ToLower(exit), "n"))
+
 	a := newApp(*id, *icon, *name, *icon_files)
 	a.write()
 	fmt.Printf("\nDone - Now Type:\n\ncd %v \ncargo b -r \nsudo just install\n", a.Name)
@@ -63,7 +75,7 @@ func (a *app) IconName() string {
 func (a *app) FormatName() string {
 	return strings.ReplaceAll(a.Name, "-", " ")
 }
-func newApp(id, icon, name, icon_files string) *app {
+func newApp(id, icon, name string, icon_files []string) *app {
 
 	f := must(fs.ReadDir("data"))
 	f1 := make([]string, 0, len(f)+1)
@@ -96,7 +108,7 @@ func newApp(id, icon, name, icon_files string) *app {
 	f3.Close()
 	appsDir := filepath.Join(name, "data", "icons", "scalable", "apps")
 	must1(os.MkdirAll(appsDir, os.ModePerm))
-	for _, p := range strings.Fields(icon_files) {
+	for _, p := range icon_files {
 		must1(os.WriteFile(filepath.Join(appsDir, filepath.Base(p)), must(os.ReadFile(p)), os.ModePerm))
 	}
 	return &app{
@@ -105,6 +117,35 @@ func newApp(id, icon, name, icon_files string) *app {
 		f:    f1,
 		Icon: icon,
 		Name: name,
+	}
+}
+
+func interactive(id, icon, name *string, icon_files *[]string) {
+	fmt.Println("Interacitve Mode:")
+	prompts := map[string]*string{"id": id, "icon": icon, "name": name}
+	s := bufio.NewScanner(os.Stdin)
+	for k, v := range prompts {
+		fmt.Printf("%v: ", k)
+		mustBool(s.Scan())
+		t := s.Text()
+		if t == "" {
+			continue
+		}
+		*v = t
+	}
+	fmt.Printf("icon files: ")
+	mustBool(s.Scan())
+	t := s.Text()
+	if t != "" {
+		*icon_files = strings.Fields(t)
+	}
+	must1(s.Err())
+
+}
+
+func mustBool(b bool) {
+	if !b {
+		panic("false")
 	}
 }
 
