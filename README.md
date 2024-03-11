@@ -11,10 +11,11 @@ Go(>=1.22) is required to build. Prebuilt binaries are available in the releases
 go install github.com/leb-kuchen/libcosmic-template@latest
 ```
 ## Usage
-- icon string: Icon name (default "display-symbolic")
-- icon-files string: path to icon files(Seperated by whitespace)
-- id string: App ID (default "com.system76.CosmicAppletExample")
-- name string: App name (default "cosmic-applet-example")
+  --icon string          Icon name (default "display-symbolic")
+  --icon-files strings   path to icon files
+  --id string            App ID (default "com.system76.CosmicAppletExample")
+  -i, --interactive      Activate interactive mode
+  -n, --name string      App name (default "cosmic-applet-example")
 
 ## Getting started
 ```sh
