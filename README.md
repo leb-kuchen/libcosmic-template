@@ -28,7 +28,7 @@ sudo just install
 The example applet should now appear in the panel settings.
 ## Example
 ```sh
-libcosmic-template -id=org.example1.com --name=example-example-applet1 --icon="zoom-original-symbolic.svg" --icon-files= "zoom-original-symbolic.svg"
+libcosmic-template --id=org.example1.com --name=example-example-applet1 --icon="zoom-original-symbolic.svg" --icon-files= "zoom-original-symbolic.svg"
 ```
 
 
