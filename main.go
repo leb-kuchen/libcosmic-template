@@ -36,7 +36,7 @@ func main() {
 	fmt.Printf("Your input, are you sure? id: %v, icon: %v, name: %v, icon_files: %v \n", *id, *icon, *name, *icon_files)
 	exit := ""
 	must(fmt.Scan(&exit))
-	mustBool(!strings.HasPrefix(strings.ToLower(exit), "n"))
+	mustBool(strings.HasPrefix(strings.ToLower(exit), "y"))
 
 	a := newApp(*id, *icon, *name, *icon_files)
 	a.write()
