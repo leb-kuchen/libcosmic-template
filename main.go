@@ -32,6 +32,7 @@ func main() {
 	name := flag.StringP("name", "n", "cosmic-applet-example", "App name")
 	icon_files := flag.StringSlice("icon-files", []string{}, "path to icon files")
 	interactive_ := flag.BoolP("interactive", "i", false, "Activate interactive mode")
+	config := flag.BoolP("config", "c", true, "Generate config-config")
 	flag.Parse()
 	if *interactive_ {
 		interactive(id, icon, name, icon_files)
@@ -49,16 +50,21 @@ func main() {
 		"pop-os/libcosmic github.com",
 	}
 	versions := make([]string, len(crates))
-	urlWg.Add(len(crates) - 1)
 	for idx, crate := range crates {
 		crateName, _, ok := strings.Cut(crate, " ")
+		var versioner Versioner
+		var url string
 		if !ok {
-			url := fmt.Sprintf("https://crates.io/api/v1/crates/%v/versions", crateName)
-			go fetch(url, crate, idx, client, urlWg, versions, cratesVersion)
+			urlWg.Add(1)
+			url = fmt.Sprintf("https://crates.io/api/v1/crates/%v/versions", crateName)
+			versioner = &CrateInfo{}
+			go fetch(versioner, url, crate, idx, client, urlWg, versions)
+
 		} //else {
-		// 	url := fmt.Sprintf("https://api.%v/repos/%v/tags", provider, crateName)
-		// 	go fetch(url, crate, idx, client, urlWg, versions, githubVersion)
+		// 	versioner = &GithubInfo{}
+		// 	url = fmt.Sprintf("https://api.%v/repos/%v/tags", provider, crateName)
 		// }
+
 		// todo get latest rev
 
 	}
@@ -67,7 +73,7 @@ func main() {
 	exit := ""
 	must(fmt.Scan(&exit))
 	mustBool(strings.HasPrefix(strings.ToLower(exit), "y"))
-	a := newApp(*id, *icon, *name, *icon_files, versions)
+	a := newApp(*id, *icon, *name, *config, *icon_files, versions)
 	a.write()
 	fmt.Printf("\nDone - Now Type:\n\ncd %v \ncargo b -r \nsudo just install\n", a.Name)
 
@@ -80,6 +86,7 @@ type app struct {
 	// file names
 	f              []string
 	ID, Icon, Name string
+	Config         bool
 }
 
 func (a *app) write() {
@@ -105,7 +112,7 @@ func (a *app) IconName() string {
 func (a *app) FormatName() string {
 	return strings.ReplaceAll(a.Name, "-", " ")
 }
-func newApp(id, icon, name string, icon_files, versions []string) *app {
+func newApp(id, icon, name string, config bool, icon_files, versions []string) *app {
 	f := must(fs.ReadDir("data"))
 	f1 := make([]string, 0, len(f)+1)
 	for i := range f {
@@ -143,10 +150,12 @@ func newApp(id, icon, name string, icon_files, versions []string) *app {
 		Icon:     icon,
 		Name:     name,
 		Versions: versions,
+		Config:   config,
 	}
 }
 
-func fetch[T any](url, crate string, idx int, client *http.Client, urlWg *sync.WaitGroup, versions []string, versionFunc func(T) string) {
+// todo propbably should be interface
+func fetch(content Versioner, url, crate string, idx int, client *http.Client, urlWg *sync.WaitGroup, versions []string) {
 	defer urlWg.Done()
 	fmt.Println("Fetching:", url)
 	req := must(http.NewRequest("GET", url, nil))
@@ -158,22 +167,10 @@ func fetch[T any](url, crate string, idx int, client *http.Client, urlWg *sync.W
 		panic(res.Status)
 	}
 	body := must(io.ReadAll(res.Body))
-	var content T
 	must1(json.Unmarshal(body, &content))
-	version := versionFunc(content)
+	version := content.version()
 	versions[idx] = version
 	fmt.Printf("%v: %v\n", crate, version)
-}
-func cratesVersion(ci *CrateInfo) string {
-	return ci.Versions[0].Num
-}
-
-func githubVersion(gi GithubInfo) string {
-	return gi[0].Name
-}
-
-type Tag struct {
-	Name string `json:"name"`
 }
 
 type CrateInfo struct {
@@ -181,7 +178,21 @@ type CrateInfo struct {
 		Num string `json:"num"`
 	} `json:"versions"`
 }
-type GithubInfo []Tag
+type GithubInfo []struct {
+	Name string `json:"name"`
+}
+
+func (a CrateInfo) version() string {
+	return a.Versions[0].Num
+}
+
+func (a GithubInfo) version() string {
+	return a[0].Name
+}
+
+type Versioner interface {
+	version() string
+}
 
 func interactive(id, icon, name *string, icon_files *[]string) {
 	// todo map is random
