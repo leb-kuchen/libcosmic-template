@@ -1,4 +1,3 @@
-use crate::config::{self, Config, CONFIG_VERSION};
 use cosmic::app::Core;
 use cosmic::iced::wayland::popup::{destroy_popup, get_popup};
 use cosmic::iced::window::Id;
@@ -7,7 +6,11 @@ use cosmic::iced_futures::Subscription;
 use cosmic::iced_runtime::core::window;
 use cosmic::iced_style::application;
 use cosmic::widget;
-use cosmic::{cosmic_config, Element, Theme};
+use cosmic::{Element, Theme};
+{{if .Config -}} 
+use cosmic::cosmic_config;
+use crate::config::{Config, CONFIG_VERSION};
+{{- end}}
 pub const ID: &str = "{{.ID}}";
 
 #[derive(Default)]
@@ -15,27 +18,33 @@ pub struct Window {
     core: Core,
     popup: Option<Id>,
     example_row: bool,
+    {{if .Config -}}
     config: Config,
+    #[allow(dead_code)]
     config_handler: Option<cosmic_config::Config>,
+    {{- end}}
 }
 
 #[derive(Clone, Debug)]
 pub enum Message {
+    {{if .Config -}}
     Config(Config),
+    {{- end}}
     TogglePopup,
     PopupClosed(Id),
     ToggleExampleRow(bool),
 }
-
+{{if .Config -}}
 #[derive(Clone, Debug)]
 pub struct Flags {
     pub config_handler: Option<cosmic_config::Config>,
     pub config: Config,
 }
+{{- end}}
 
 impl cosmic::Application for Window {
     type Executor = cosmic::SingleThreadExecutor;
-    type Flags = Flags;
+    type Flags = {{if .Config}} Flags  {{else}} () {{end}} ;
     type Message = Message;
     const APP_ID: &'static str = ID;
 
@@ -49,12 +58,14 @@ impl cosmic::Application for Window {
 
     fn init(
         core: Core,
-        flags: Self::Flags,
+        {{if .Config}}flags{{else}}_flags{{end}}: Self::Flags,
     ) -> (Self, Command<cosmic::app::Message<Self::Message>>) {
         let window = Window {
             core,
+            {{if .Config -}}
             config: flags.config,
             config_handler: flags.config_handler,
+            {{- end}}
             popup: None,
             example_row: false,
         };
@@ -66,7 +77,9 @@ impl cosmic::Application for Window {
     }
 
     fn update(&mut self, message: Self::Message) -> Command<cosmic::app::Message<Self::Message>> {
+        {{if .Config}}
         // Helper for updating config values efficiently
+        #[allow(unused_macros)]
         macro_rules! config_set {
             ($name: ident, $value: expr) => {
                 match &self.config_handler {
@@ -88,12 +101,15 @@ impl cosmic::Application for Window {
                 }
             };
         }
+        {{end}}
         match message {
+            {{if .Config}}
             Message::Config(config) => {
                 if config != self.config {
                     self.config = config
                 }
             }
+            {{end}}
             Message::TogglePopup => {
                 return if let Some(p) = self.popup.take() {
                     destroy_popup(p)
@@ -144,6 +160,7 @@ impl cosmic::Application for Window {
         self.core.applet.popup_container(content_list).into()
     }
     fn subscription(&self) -> Subscription<Self::Message> {
+        {{if .Config}}
         struct ConfigSubscription;
         return cosmic_config::config_subscription(
             std::any::TypeId::of::<ConfigSubscription>(),
@@ -159,6 +176,10 @@ impl cosmic::Application for Window {
             }
             Message::Config(update.config)
         });
+        {{else}}
+        Subscription::none()
+        {{end}}
+
     }
 
     fn style(&self) -> Option<<Theme as application::StyleSheet>::Style> {

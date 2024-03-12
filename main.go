@@ -22,9 +22,11 @@ var fs embed.FS
 //go:embed dataDyn/*
 var fsDyn embed.FS
 
+// todo add tests for config
 // todo better naming
 // todo go-flags
 // todo name should be template
+// conditional filenames, parse walkfn
 
 func main() {
 	id := flag.String("id", "com.system76.CosmicAppletExample", "App ID")
@@ -32,7 +34,8 @@ func main() {
 	name := flag.StringP("name", "n", "cosmic-applet-example", "App name")
 	icon_files := flag.StringSlice("icon-files", []string{}, "path to icon files")
 	interactive_ := flag.BoolP("interactive", "i", false, "Activate interactive mode")
-	config := flag.BoolP("config", "c", true, "Generate config-config")
+	config := flag.BoolP("config", "c", true, "Generate cosmic-config")
+	noConfirm := flag.Bool("no-confirm", false, "Do not ask for confirmation")
 	flag.Parse()
 	if *interactive_ {
 		interactive(id, icon, name, icon_files)
@@ -66,13 +69,15 @@ func main() {
 		// }
 
 		// todo get latest rev
-
 	}
 	urlWg.Wait()
-	fmt.Printf("\nYour input, are you sure?\n\nid: %v\nicon: %v\nname: %v\nicon_files: %v\n\n", *id, *icon, *name, *icon_files)
-	exit := ""
-	must(fmt.Scan(&exit))
-	mustBool(strings.HasPrefix(strings.ToLower(exit), "y"))
+	if !*noConfirm {
+		fmt.Printf("\nYour input, are you sure?\n\nid: %v\nicon: %v\nname: %v\nicon_files: %v\n\n", *id, *icon, *name, *icon_files)
+		exit := ""
+		must(fmt.Scan(&exit))
+		mustBool(strings.HasPrefix(strings.ToLower(exit), "y"))
+
+	}
 	a := newApp(*id, *icon, *name, *config, *icon_files, versions)
 	a.write()
 	fmt.Printf("\nDone - Now Type:\n\ncd %v \ncargo b -r \nsudo just install\n", a.Name)
