@@ -22,6 +22,9 @@ var fs embed.FS
 //go:embed dataDyn/*
 var fsDyn embed.FS
 
+//go:embed version
+var version_ string
+
 // todo add tests for config
 // todo better naming
 // todo go-flags
@@ -164,7 +167,8 @@ func fetch(content Versioner, url, crate string, idx int, client *http.Client, u
 	defer urlWg.Done()
 	fmt.Println("Fetching:", url)
 	req := must(http.NewRequest("GET", url, nil))
-	req.Header.Set("User-Agent", "v0.3.1 - github.com/leb-kuchen/libcosmic-template")
+	userAgentStr := fmt.Sprintf("%v - github.com/leb-kuchen/libcosmic-template", version_)
+	req.Header.Set("User-Agent", userAgentStr)
 	req.Header.Set("Accept", "application/json")
 	res := must(client.Do(req))
 	defer res.Body.Close()
