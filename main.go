@@ -3,12 +3,14 @@ package main
 import (
 	"bufio"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"text/template"
 
 	flag "github.com/spf13/pflag"
@@ -21,9 +23,10 @@ var fs embed.FS
 var fsDyn embed.FS
 
 // todo better naming
+// todo go-flags
+// todo name should be template
 
 func main() {
-
 	id := flag.String("id", "com.system76.CosmicAppletExample", "App ID")
 	icon := flag.String("icon", "display-symbolic", "Icon name")
 	name := flag.StringP("name", "n", "cosmic-applet-example", "App name")
@@ -33,12 +36,38 @@ func main() {
 	if *interactive_ {
 		interactive(id, icon, name, icon_files)
 	}
-	fmt.Printf("Your input, are you sure? id: %v, icon: %v, name: %v, icon_files: %v \n", *id, *icon, *name, *icon_files)
+
+	client := &http.Client{}
+	urlWg := &sync.WaitGroup{}
+	// todo file based
+	crates := []string{
+		"rust-embed",
+		"i18n-embed-fl",
+		"once_cell",
+		"i18n-embed",
+		"serde",
+		"pop-os/libcosmic github.com",
+	}
+	versions := make([]string, len(crates))
+	urlWg.Add(len(crates) - 1)
+	for idx, crate := range crates {
+		crateName, _, ok := strings.Cut(crate, " ")
+		if !ok {
+			url := fmt.Sprintf("https://crates.io/api/v1/crates/%v/versions", crateName)
+			go fetch(url, crate, idx, client, urlWg, versions, cratesVersion)
+		} //else {
+		// 	url := fmt.Sprintf("https://api.%v/repos/%v/tags", provider, crateName)
+		// 	go fetch(url, crate, idx, client, urlWg, versions, githubVersion)
+		// }
+		// todo get latest rev
+
+	}
+	urlWg.Wait()
+	fmt.Printf("\nYour input, are you sure?\n\nid: %v\nicon: %v\nname: %v\nicon_files: %v\n\n", *id, *icon, *name, *icon_files)
 	exit := ""
 	must(fmt.Scan(&exit))
 	mustBool(strings.HasPrefix(strings.ToLower(exit), "y"))
-
-	a := newApp(*id, *icon, *name, *icon_files)
+	a := newApp(*id, *icon, *name, *icon_files, versions)
 	a.write()
 	fmt.Printf("\nDone - Now Type:\n\ncd %v \ncargo b -r \nsudo just install\n", a.Name)
 
@@ -47,6 +76,7 @@ func main() {
 type app struct {
 	t *template.Template
 
+	Versions []string
 	// file names
 	f              []string
 	ID, Icon, Name string
@@ -75,14 +105,15 @@ func (a *app) IconName() string {
 func (a *app) FormatName() string {
 	return strings.ReplaceAll(a.Name, "-", " ")
 }
-func newApp(id, icon, name string, icon_files []string) *app {
-
+func newApp(id, icon, name string, icon_files, versions []string) *app {
 	f := must(fs.ReadDir("data"))
 	f1 := make([]string, 0, len(f)+1)
 	for i := range f {
 		f1 = append(f1, f[i].Name())
 	}
 	must1(os.MkdirAll(filepath.Join(name, "data"), os.ModePerm))
+	must1(os.MkdirAll(filepath.Join(name, "src"), os.ModePerm))
+
 	f1 = append(f1, fmt.Sprintf("%v.desktop", id))
 	t := must(template.New("").Funcs(template.FuncMap{
 		"replace": strings.ReplaceAll,
@@ -91,17 +122,11 @@ func newApp(id, icon, name string, icon_files []string) *app {
 	defer f10.Close()
 	must(t.New(f1[len(f1)-1]).Parse(string(must(io.ReadAll(f10)))))
 
-	addDep := "cargo add --git 'https://github.com/pop-os/libcosmic' libcosmic --no-default-features -F 'libcosmic/applet,libcosmic/tokio,libcosmic/wayland'"
-	addDep2 := "cargo add rust-embed i18n-embed-fl once_cell i18n-embed -F 'i18n-embed/fluent-system,i18n-embed/desktop-requester'"
-	cmd := exec.Command("bash", "-c", fmt.Sprintf("cd %v && cargo init && %v && %v", name, addDep, addDep2))
-	fmt.Println("Executing command:", cmd)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	must1(cmd.Run())
 	p := filepath.Join(name, "i18n", "en")
 	must1(os.MkdirAll(p, os.ModePerm))
 	// todo touch
-
+	// todo move logic to templates folder
+	// todo rename data to templates
 	f2 := must(os.Create(filepath.Join(p, fmt.Sprintf("%v.ftl", strings.ReplaceAll(name, "-", "_")))))
 	f2.Close()
 	f3 := must(os.Create(filepath.Join(name, "data", fmt.Sprintf("%v.desktop", id))))
@@ -112,15 +137,54 @@ func newApp(id, icon, name string, icon_files []string) *app {
 		must1(os.WriteFile(filepath.Join(appsDir, filepath.Base(p)), must(os.ReadFile(p)), os.ModePerm))
 	}
 	return &app{
-		t:    t,
-		ID:   id,
-		f:    f1,
-		Icon: icon,
-		Name: name,
+		t:        t,
+		ID:       id,
+		f:        f1,
+		Icon:     icon,
+		Name:     name,
+		Versions: versions,
 	}
 }
 
+func fetch[T any](url, crate string, idx int, client *http.Client, urlWg *sync.WaitGroup, versions []string, versionFunc func(T) string) {
+	defer urlWg.Done()
+	fmt.Println("Fetching:", url)
+	req := must(http.NewRequest("GET", url, nil))
+	req.Header.Set("User-Agent", "v0.3.1 - github.com/leb-kuchen/libcosmic-template")
+	req.Header.Set("Accept", "application/json")
+	res := must(client.Do(req))
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		panic(res.Status)
+	}
+	body := must(io.ReadAll(res.Body))
+	var content T
+	must1(json.Unmarshal(body, &content))
+	version := versionFunc(content)
+	versions[idx] = version
+	fmt.Printf("%v: %v\n", crate, version)
+}
+func cratesVersion(ci *CrateInfo) string {
+	return ci.Versions[0].Num
+}
+
+func githubVersion(gi GithubInfo) string {
+	return gi[0].Name
+}
+
+type Tag struct {
+	Name string `json:"name"`
+}
+
+type CrateInfo struct {
+	Versions []struct {
+		Num string `json:"num"`
+	} `json:"versions"`
+}
+type GithubInfo []Tag
+
 func interactive(id, icon, name *string, icon_files *[]string) {
+	// todo map is random
 	fmt.Println("Interacitve Mode:")
 	prompts := map[string]*string{"id": id, "icon": icon, "name": name}
 	s := bufio.NewScanner(os.Stdin)
