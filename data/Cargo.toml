@@ -1,0 +1,15 @@
+[package]
+name = "{{.Name}}"
+version = "0.1.0"
+edition = "2021"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+i18n-embed = { version = "{{index .Versions 3}}", features = ["fluent-system", "desktop-requester"] }
+i18n-embed-fl = "{{index .Versions 1}}"
+libcosmic = { git = "https://github.com/pop-os/libcosmic", version = "0.1.0", default-features = false, features = ["applet", "tokio", "wayland"] }
+once_cell = "{{index .Versions 2}}"
+rust-embed = "{{index .Versions 0}}"
+serde =  "{{index .Versions 4}}"
