@@ -39,7 +39,12 @@ func main() {
 	interactive_ := flag.BoolP("interactive", "i", false, "Activate interactive mode")
 	config := flag.BoolP("config", "c", true, "Generate cosmic-config")
 	noConfirm := flag.Bool("no-confirm", false, "Do not ask for confirmation")
+	version := flag.BoolP("version", "V", false, "Show the latest version")
 	flag.Parse()
+	if *version {
+		fmt.Println(versionString)
+		return
+	}
 	if *interactive_ {
 		interactive(id, icon, name, icon_files)
 	}
@@ -167,6 +172,7 @@ func fetch(content Versioner, url, crate string, idx int, client *http.Client, u
 	defer urlWg.Done()
 	fmt.Println("Fetching:", url)
 	req := must(http.NewRequest("GET", url, nil))
+	// strings.Trim?
 	userAgent := fmt.Sprintf("libcosmic-template/%s github.com/leb-kuchen/libcomsic-template", versionString)
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Accept", "application/json")
