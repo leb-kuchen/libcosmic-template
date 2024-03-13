@@ -39,6 +39,7 @@ func main() {
 	interactive_ := flag.BoolP("interactive", "i", false, "Activate interactive mode")
 	config := flag.BoolP("config", "c", true, "Generate cosmic-config")
 	noConfirm := flag.Bool("no-confirm", false, "Do not ask for confirmation")
+	noExample := flag.Bool("no-example", false, "Do not generate example row")
 	version := flag.BoolP("version", "V", false, "Show the latest version")
 	flag.Parse()
 	if *version {
@@ -86,7 +87,7 @@ func main() {
 		mustBool(strings.HasPrefix(strings.ToLower(exit), "y"))
 
 	}
-	a := newApp(*id, *icon, *name, *config, *icon_files, versions)
+	a := newApp(*id, *icon, *name, *config, !*noExample, *icon_files, versions)
 	a.write()
 	fmt.Printf("\nDone - Now Type:\n\ncd %v \ncargo b -r \nsudo just install\n", a.Name)
 
@@ -97,9 +98,9 @@ type app struct {
 
 	Versions []string
 	// file names
-	f              []string
-	ID, Icon, Name string
-	Config         bool
+	f               []string
+	ID, Icon, Name  string
+	Config, Example bool
 }
 
 func (a *app) write() {
@@ -125,7 +126,7 @@ func (a *app) IconName() string {
 func (a *app) FormatName() string {
 	return strings.ReplaceAll(a.Name, "-", " ")
 }
-func newApp(id, icon, name string, config bool, icon_files, versions []string) *app {
+func newApp(id, icon, name string, config, example bool, icon_files, versions []string) *app {
 	f := must(fs.ReadDir("data"))
 	f1 := make([]string, 0, len(f)+1)
 	for i := range f {
@@ -164,6 +165,7 @@ func newApp(id, icon, name string, config bool, icon_files, versions []string) *
 		Name:     name,
 		Versions: versions,
 		Config:   config,
+		Example:  example,
 	}
 }
 

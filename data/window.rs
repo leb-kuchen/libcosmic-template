@@ -17,7 +17,7 @@ pub const ID: &str = "{{.ID}}";
 pub struct Window {
     core: Core,
     popup: Option<Id>,
-    example_row: bool,
+    {{if .Example -}} example_row: bool, {{- end}}
     {{if .Config -}}
     config: Config,
     #[allow(dead_code)]
@@ -27,12 +27,10 @@ pub struct Window {
 
 #[derive(Clone, Debug)]
 pub enum Message {
-    {{if .Config -}}
-    Config(Config),
-    {{- end}}
+    {{if .Config -}} Config(Config), {{- end}}
     TogglePopup,
     PopupClosed(Id),
-    ToggleExampleRow(bool),
+    {{if .Example -}} ToggleExampleRow(bool),{{- end}}
 }
 {{if .Config -}}
 #[derive(Clone, Debug)]
@@ -67,7 +65,7 @@ impl cosmic::Application for Window {
             config_handler: flags.config_handler,
             {{- end}}
             popup: None,
-            example_row: false,
+            {{if .Example -}} example_row: false, {{- end}}
         };
         (window, Command::none())
     }
@@ -133,7 +131,9 @@ impl cosmic::Application for Window {
                     self.popup = None;
                 }
             }
+            {{if .Example -}}
             Message::ToggleExampleRow(toggled) => self.example_row = toggled,
+            {{- end}}
         }
         Command::none()
     }
@@ -150,12 +150,13 @@ impl cosmic::Application for Window {
         let content_list = widget::list_column()
             .padding(5)
             .spacing(0)
+            {{if .Example -}}
             .add(widget::settings::item(
                 "Example row",
                 widget::toggler(None, self.example_row, |value| {
                     Message::ToggleExampleRow(value)
                 }),
-            ));
+            )){{- end}};
 
         self.core.applet.popup_container(content_list).into()
     }
