@@ -85,6 +85,7 @@ func main() {
 		exit := ""
 		must(fmt.Scan(&exit))
 		mustBool(strings.HasPrefix(strings.ToLower(exit), "y"))
+		// todo next time run ...
 
 	}
 	a := newApp(*id, *icon, *name, *config, !*noExample, *icon_files, versions)
@@ -126,34 +127,55 @@ func (a *app) IconName() string {
 func (a *app) FormatName() string {
 	return strings.ReplaceAll(a.Name, "-", " ")
 }
+
+// todo test recursive folders
+// todo only one template folder
+
 func newApp(id, icon, name string, config, example bool, icon_files, versions []string) *app {
 	f := must(fs.ReadDir("data"))
-	f1 := make([]string, 0, len(f)+1)
+	fDynOpen := must(fsDyn.ReadDir("dataDyn"))
+	f1 := make([]string, 0, len(f)+len(fDynOpen))
 	for i := range f {
 		f1 = append(f1, f[i].Name())
 	}
 	must1(os.MkdirAll(filepath.Join(name, "data"), os.ModePerm))
 	must1(os.MkdirAll(filepath.Join(name, "src"), os.ModePerm))
 
-	f1 = append(f1, fmt.Sprintf("%v.desktop", id))
 	t := must(template.New("").Funcs(template.FuncMap{
 		"replace": strings.ReplaceAll,
 	}).ParseFS(fs, "data/*"))
-	f10 := must(fsDyn.Open("dataDyn/id.desktop"))
-	defer f10.Close()
-	must(t.New(f1[len(f1)-1]).Parse(string(must(io.ReadAll(f10)))))
+	// obviously function
+	// embed fs is readonly
+	// todo own fs?
+	for i := range fDynOpen {
+		var buf strings.Builder
+		filename := fDynOpen[i].Name()
+		fileTemplate := must(template.New("").Parse(filename))
+		fileTemplate.Execute(&buf, map[string]any{"ID": id, "Config": config})
+		parsedFilename := strings.TrimSpace(buf.String())
+		if parsedFilename == "" {
+			continue
+		}
+		fileContent := must(fsDyn.ReadFile(filepath.Join("dataDyn", filename)))
+		f1 = append(f1, parsedFilename)
+		must(t.New(parsedFilename).Parse(string(fileContent)))
+	}
 
+	// for now if ftl i18n/en
 	p := filepath.Join(name, "i18n", "en")
 	must1(os.MkdirAll(p, os.ModePerm))
 	// todo touch
 	// todo move logic to templates folder
 	// todo rename data to templates
+
+	// could be write file
+	//  {{.Name}}.ftl
 	f2 := must(os.Create(filepath.Join(p, fmt.Sprintf("%v.ftl", strings.ReplaceAll(name, "-", "_")))))
 	f2.Close()
-	f3 := must(os.Create(filepath.Join(name, "data", fmt.Sprintf("%v.desktop", id))))
-	f3.Close()
 	appsDir := filepath.Join(name, "data", "icons", "scalable", "apps")
 	must1(os.MkdirAll(appsDir, os.ModePerm))
+	// copy icon files
+	// could be at the end
 	for _, p := range icon_files {
 		must1(os.WriteFile(filepath.Join(appsDir, filepath.Base(p)), must(os.ReadFile(p)), os.ModePerm))
 	}
@@ -168,6 +190,10 @@ func newApp(id, icon, name string, config, example bool, icon_files, versions []
 		Example:  example,
 	}
 }
+
+// func parseFS() {
+
+// }
 
 // todo propbably should be interface
 func fetch(content Versioner, url, crate string, idx int, client *http.Client, urlWg *sync.WaitGroup, versions []string) {
