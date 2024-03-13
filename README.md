@@ -20,7 +20,7 @@ The current API is not stable and breaking changes will be made, but only on a m
 -i, --interactive          Activate interactive mode
 -n, --name string          App name (default "cosmic-applet-example")
     --no-confirm           Do not ask for confirmation
--V, --version     Do not ask for confirmation
+-V, --version     
 ```
 ## Getting started
 ```sh
