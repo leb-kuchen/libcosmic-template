@@ -13,5 +13,6 @@ rm -rf cosmic-applet-example
 ./libcosmic-template --no-confirm --no-example
 cd cosmic-applet-example
 cargo c
+cd ..
 rm -rf cosmic-applet-example
 
